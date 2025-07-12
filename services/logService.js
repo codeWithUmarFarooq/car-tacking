@@ -1,27 +1,12 @@
-// const knex = require('knex')(require('../../../knexfile').development);
+// services/logService.js
 
-async function saveLog(data) {
-    // const tracker = await knex('trackers').where('imei', data.imei).first();
+function saveLog(data) {
+    // For now, just print the parsed log
+    console.log('📝 Parsed Data:', JSON.stringify(data, null, 2));
 
-    if (!tracker) {
-        console.log('🚫 Tracker not registered:', data.imei);
-        return;
-    }
-
-    // await knex('tracker_logs').insert({
-    //     tracker_id: tracker.id,
-    //     lat: data.lat,
-    //     lng: data.lng,
-    //     speed: data.speed,
-    //     battery: data.battery,
-    //     recorded_at: data.timestamp
-    // });
-
-    // await knex('trackers')
-    //     .where('id', tracker.id)
-    //     .update({ last_seen_at: data.timestamp });
-
-    console.log(`✅ Log saved for ${data.imei}`);
+    // In real usage, save to DB or file
+    // Example:
+    // fs.appendFile('logs.txt', JSON.stringify(data) + '\n', err => { ... })
 }
 
 module.exports = { saveLog };
