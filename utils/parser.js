@@ -3,28 +3,23 @@ function parsePacket(packet) {
     try {
         const parts = packet.split('#').filter(p => p !== '');
 
-        if (parts.length < 5) {
-            return null; // invalid structure
-        }
+        if (parts.length < 5) return null;
 
         const [imei, model, password, status, fixValAndData] = parts;
 
-        const result = {
+        return {
             imei,
             model,
             password,
             status,
             fixValue: fixValAndData[0],
-            data: fixValAndData.slice(1),
+            rawData: fixValAndData.slice(1),
+            fullPacket: packet
         };
-
-        return result;
     } catch (err) {
         console.error('❌ Failed to parse packet:', err.message);
         return null;
     }
 }
 
-module.exports = {
-    parsePacket
-};
+module.exports = { parsePacket };
