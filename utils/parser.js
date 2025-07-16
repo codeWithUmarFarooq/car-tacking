@@ -1,5 +1,6 @@
 function convertToDecimalDegrees(value, direction) {
-    if (!value || !direction || isNaN(value)) return null;
+    if (!value || !direction) return null;
+
     const isLat = direction === 'N' || direction === 'S';
     const degreeLength = isLat ? 2 : 3;
     const degrees = parseInt(value.slice(0, degreeLength), 10);
@@ -11,28 +12,21 @@ function convertToDecimalDegrees(value, direction) {
     }
     return decimal;
 }
-function parseWiFiBody(body) {
-    const timeMatch = body.match(/\$WIFI,(\d{6}\.\d{2})/);
-    const dateMatch = body.match(/,(\d{6})\*/);
 
-    const formattedTime = timeMatch
-        ? `${timeMatch[1].slice(0, 2)}:${timeMatch[1].slice(2, 4)}:${timeMatch[1].slice(4, 6)}`
-        : null;
-
-    const date = dateMatch ? dateMatch[1] : null;
-    const formattedDate = date?.length === 6
-        ? `20${date.slice(4)}-${date.slice(2, 4)}-${date.slice(0, 2)}`
-        : null;
-
-    return {
-        valid: false,
-        utcTime: formattedTime,
-        date: formattedDate
-    };
-}
 function parseGPSBody(body) {
     const gpsMatch = body.match(/\$GPRMC,([^,]+),([AV]),([^,]+),([NS]),([^,]+),([EW]),([^,]*),([^,]*),([^,]+),/);
-    if (!gpsMatch) return null;
+
+    if (!gpsMatch) {
+        return {
+            latitude: null,
+            longitude: null,
+            valid: false,
+            utcTime: null,
+            date: null,
+            speed: null,
+            course: null
+        };
+    }
 
     const [
         _,
@@ -46,16 +40,20 @@ function parseGPSBody(body) {
     ] = gpsMatch;
 
     const valid = fixStatus === 'A';
-
     const latitude = convertToDecimalDegrees(rawLat, latDir);
     const longitude = convertToDecimalDegrees(rawLon, lonDir);
 
-    const formattedTime = `${utcTime.slice(0, 2)}:${utcTime.slice(2, 4)}:${utcTime.slice(4, 6)}`;
-    const formattedDate = `20${date.slice(4)}-${date.slice(2, 4)}-${date.slice(0, 2)}`; // YYYY-MM-DD
+    const formattedTime = utcTime?.length === 6
+        ? `${utcTime.slice(0, 2)}:${utcTime.slice(2, 4)}:${utcTime.slice(4, 6)}`
+        : null;
+
+    const formattedDate = date?.length === 6
+        ? `20${date.slice(4)}-${date.slice(2, 4)}-${date.slice(0, 2)}`
+        : null;
 
     return {
-        latitude,
-        longitude,
+        latitude: valid ? latitude : null,
+        longitude: valid ? longitude : null,
         valid,
         utcTime: formattedTime,
         date: formattedDate,
@@ -70,13 +68,17 @@ export const parsePacket = (packet) => {
         if (parts.length < 6) return null;
 
         const [imei, model, password, status, fixValue, bodyLine] = parts;
-
-        let gpsData = {};
-        if (bodyLine.includes('$GPRMC')) {
-            gpsData = parseGPSBody(bodyLine) || {};
-        } else if (bodyLine.includes('$WIFI')) {
-            gpsData = parseWiFiBody(bodyLine) || {};
-        }
+        const gpsData = bodyLine.includes('$GPRMC')
+            ? parseGPSBody(bodyLine)
+            : {
+                latitude: null,
+                longitude: null,
+                valid: false,
+                utcTime: null,
+                date: null,
+                speed: null,
+                course: null
+            };
 
         return {
             imei,
@@ -93,4 +95,3 @@ export const parsePacket = (packet) => {
         return null;
     }
 };
-
