@@ -13,7 +13,7 @@ function normalizeStatus(rawStatus = '') {
 export const saveLog = async (data) => {
     try {
         const gps = data.gps || {};
-
+console.log(gps);
         await db('logs').insert({
             imei: data.imei,
             latitude: gps.latitude,
