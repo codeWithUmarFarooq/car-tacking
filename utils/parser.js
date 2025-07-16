@@ -14,19 +14,17 @@ function convertToDecimalDegrees(value, direction) {
 }
 
 function parseGPSBody(body) {
-    const parts = body.trim().split(',');
+    // Extract only the GPRMC sentence
+    const gprmcStart = body.indexOf('$GPRMC');
+    if (gprmcStart === -1) {
+        return defaultGPS();
+    }
 
-    // Ensure it is a valid GPRMC sentence with enough parts
-    if (!parts[0].includes('$GPRMC') || parts.length < 10) {
-        return {
-            latitude: null,
-            longitude: null,
-            valid: false,
-            utcTime: null,
-            date: null,
-            speed: null,
-            course: null
-        };
+    const gprmc = body.slice(gprmcStart).trim();
+    const parts = gprmc.split(',');
+
+    if (parts.length < 10 || !parts[2]) {
+        return defaultGPS();
     }
 
     const fixStatus = parts[2];
@@ -63,24 +61,33 @@ function parseGPSBody(body) {
     };
 }
 
+function defaultGPS() {
+    return {
+        latitude: null,
+        longitude: null,
+        valid: false,
+        utcTime: null,
+        date: null,
+        speed: null,
+        course: null
+    };
+}
+
 export const parsePacket = (packet) => {
     try {
         const parts = packet.split('#').filter(Boolean);
         if (parts.length < 6) return null;
 
         const [imei, model, password, status, fixValue, bodyLine] = parts;
+
+        // Extract backup voltage if present: e.g., '#3828$GPRMC,...'
+        const voltageMatch = bodyLine.match(/^(\d{4})/);
+        const batteryVoltage = voltageMatch ? parseFloat(voltageMatch[1]) / 1000 : null;
+
         const gpsData = bodyLine.includes('$GPRMC')
             ? parseGPSBody(bodyLine)
-            : {
-                latitude: null,
-                longitude: null,
-                valid: false,
-                utcTime: null,
-                date: null,
-                speed: null,
-                course: null
-            };
-console.log("Parsed GPS:", gpsData);
+            : defaultGPS();
+
         return {
             imei,
             model,
@@ -89,6 +96,7 @@ console.log("Parsed GPS:", gpsData);
             fixValue,
             rawData: bodyLine,
             fullPacket: packet,
+            batteryVoltage,
             gps: gpsData
         };
     } catch (err) {
