@@ -80,7 +80,7 @@ export const parsePacket = (packet) => {
                 speed: null,
                 course: null
             };
-
+console.log("Parsed GPS:", gpsData);
         return {
             imei,
             model,
