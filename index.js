@@ -51,10 +51,22 @@ const tcpServer = net.createServer(socket => {
 
             console.log('✅ Full packet received:', fullMessage);
 
-            const parsed = parsePacket(fullMessage);
-            if (parsed) {
-                saveLog(parsed);
-            }
+           const parsed = parsePacket(fullMessage);
+if (parsed) {
+    console.table({
+        IMEI: parsed.imei,
+        Model: parsed.model,
+        Password: parsed.password,
+        Status: parsed.status,
+        Fix: parsed.fixValue,
+        Latitude: parsed.gps.latitude,
+        Longitude: parsed.gps.longitude,
+        UTC_Time: parsed.gps.utcTime,
+        Date: parsed.gps.date,
+    });
+
+    saveLog(parsed); // Save or store the raw + structured data
+}
 
             startIndex = buffer.indexOf('#');
         }
