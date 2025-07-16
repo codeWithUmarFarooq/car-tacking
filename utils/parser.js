@@ -14,9 +14,10 @@ function convertToDecimalDegrees(value, direction) {
 }
 
 function parseGPSBody(body) {
-    const gpsMatch = body.match(/\$GPRMC,([^,]+),([AV]),([^,]+),([NS]),([^,]+),([EW]),([^,]*),([^,]*),([^,]+),/);
+    const parts = body.trim().split(',');
 
-    if (!gpsMatch) {
+    // Ensure it is a valid GPRMC sentence with enough parts
+    if (!parts[0].includes('$GPRMC') || parts.length < 10) {
         return {
             latitude: null,
             longitude: null,
@@ -28,22 +29,22 @@ function parseGPSBody(body) {
         };
     }
 
-    const [
-        _,
-        utcTime,
-        fixStatus,
-        rawLat, latDir,
-        rawLon, lonDir,
-        speed,
-        course,
-        date
-    ] = gpsMatch;
-
+    const fixStatus = parts[2];
     const valid = fixStatus === 'A';
+
+    const rawLat = parts[3];
+    const latDir = parts[4];
+    const rawLon = parts[5];
+    const lonDir = parts[6];
+    const speed = parts[7];
+    const course = parts[8];
+    const date = parts[9];
+    const utcTime = parts[1];
+
     const latitude = convertToDecimalDegrees(rawLat, latDir);
     const longitude = convertToDecimalDegrees(rawLon, lonDir);
 
-    const formattedTime = utcTime?.length === 6
+    const formattedTime = utcTime?.length >= 6
         ? `${utcTime.slice(0, 2)}:${utcTime.slice(2, 4)}:${utcTime.slice(4, 6)}`
         : null;
 
