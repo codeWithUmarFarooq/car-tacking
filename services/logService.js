@@ -38,6 +38,7 @@ export const saveLog = async (data) => {
             longitude: gps.longitude,
             speed_knots: gps.speed,
             course: gps.course,
+              battery_voltage: data.customCode,
             gps_valid: gps.valid,
             status: normalizeStatus(data.status),
             device_time: gps.date && gps.utcTime
