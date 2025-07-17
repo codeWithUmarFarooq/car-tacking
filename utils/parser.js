@@ -14,16 +14,20 @@ function convertToDecimalDegrees(value, direction) {
 }
 
 function parseGPSBody(body) {
-    // Extract only the GPRMC sentence
     const gprmcStart = body.indexOf('$GPRMC');
     if (gprmcStart === -1) {
+        console.log('❌ $GPRMC not found in body:', body);
         return defaultGPS();
     }
 
     const gprmc = body.slice(gprmcStart).trim();
     const parts = gprmc.split(',');
 
-    if (parts.length < 10 || !parts[2]) {
+    console.log('🧩 Raw $GPRMC sentence:', gprmc);
+    console.log('🧩 Split parts:', parts);
+
+    if (parts.length < 10) {
+        console.log('❌ Not enough parts in $GPRMC:', parts);
         return defaultGPS();
     }
 
@@ -38,6 +42,18 @@ function parseGPSBody(body) {
     const course = parts[8];
     const date = parts[9];
     const utcTime = parts[1];
+
+    // 🔍 Log all values
+    console.log('📍 Parsed Fields:');
+    console.log('  ⏱️ utcTime:', utcTime);
+    console.log('  ✅ fixStatus:', fixStatus);
+    console.log('  📌 rawLat:', rawLat);
+    console.log('  🧭 latDir:', latDir);
+    console.log('  📌 rawLon:', rawLon);
+    console.log('  🧭 lonDir:', lonDir);
+    console.log('  🚀 speed:', speed);
+    console.log('  ↪️ course:', course);
+    console.log('  📅 date:', date);
 
     const latitude = convertToDecimalDegrees(rawLat, latDir);
     const longitude = convertToDecimalDegrees(rawLon, lonDir);
@@ -80,7 +96,7 @@ export const parsePacket = (packet) => {
 
         const [imei, model, password, status, fixValue, bodyLine] = parts;
 
-        // Extract backup voltage if present: e.g., '#3828$GPRMC,...'
+        // Extract voltage (e.g., 3828 => 3.828 V)
         const voltageMatch = bodyLine.match(/^(\d{4})/);
         const batteryVoltage = voltageMatch ? parseFloat(voltageMatch[1]) / 1000 : null;
 
