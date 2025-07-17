@@ -1,5 +1,9 @@
 
 import db from "../config/db.js";
+function convertKnotsToMPH(knots) {
+    const mph = knots * 1.15078;
+    return parseFloat(mph.toFixed(2));
+}
 function normalizeStatus(rawStatus = '') {
     const status = rawStatus.toLowerCase();
 
@@ -10,10 +14,9 @@ function normalizeStatus(rawStatus = '') {
     return 'unknown';
 }
 function convertGpsDateTime(dateStr, timeStr) {
-    // Example: dateStr = '170725', timeStr = '031435.00'
     const day = dateStr.substring(0, 2);
     const month = dateStr.substring(2, 4);
-    const year = '20' + dateStr.substring(4, 6); // assumes 20XX
+    const year = '20' + dateStr.substring(4, 6);
 
     const hour = timeStr.substring(0, 2);
     const minute = timeStr.substring(2, 4);
@@ -22,23 +25,20 @@ function convertGpsDateTime(dateStr, timeStr) {
     // Build a proper ISO string
     const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
 
-    return new Date(isoString); // Returns a valid Date object
+    return new Date(isoString);
 }
 
 
 export const saveLog = async (data) => {
     try {
-        // console.log("Saving log data:", data);
         const gps = data.gps || {};
-        // console.log("data", gps);
-
         await db('logs').insert({
             imei: data.imei,
             latitude: gps.latitude,
             longitude: gps.longitude,
-            speed_knots: gps.speed,
-            course: gps.course,
-              battery_voltage: data.customCode,
+            speed_knots: convertKnotsToMPH(gps.speed) || 0,
+            battery_voltage: (data.customCode / 1000) || 0,
+            course: gps.course || 0,
             gps_valid: gps.valid,
             status: normalizeStatus(data.status),
             device_time: gps.date && gps.utcTime
