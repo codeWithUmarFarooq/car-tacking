@@ -13,96 +13,118 @@ function convertToDecimalDegrees(value, direction) {
     return decimal;
 }
 
-function parseGPSBody(body) {
-    const gprmcStart = body.indexOf('$GPRMC');
-    if (gprmcStart === -1) {
-        console.log('❌ $GPRMC not found in body:', body);
-        return defaultGPS();
+// function parseGPSBody(body) {
+//     // const parts = body.trim().split(',');
+
+//     // // Ensure it is a valid GPRMC sentence with enough parts
+//     // if (!parts[0].includes('$GPRMC') || parts.length < 10) {
+//     //     // console.log("Invalid GPRMC data:", body);
+//     //     return {
+//     //         latitude: null,
+//     //         longitude: null,
+//     //         valid: false,
+//     //         utcTime: null,
+//     //         date: null,
+//     //         speed: null,
+//     //         course: null
+//     //     };
+//     // }
+
+//     // const fixStatus = parts[2];
+//     // const valid = fixStatus === 'A';
+
+//     // const rawLat = parts[3];
+//     // const latDir = parts[4];
+//     // const rawLon = parts[5];
+//     // const lonDir = parts[6];
+//     // const speed = parts[7];
+//     // const course = parts[8];
+//     // const date = parts[9];
+//     // const utcTime = parts[1];
+
+//     // const latitude = convertToDecimalDegrees(rawLat, latDir);
+//     // const longitude = convertToDecimalDegrees(rawLon, lonDir);
+
+//     // const formattedTime = utcTime?.length >= 6
+//     //     ? `${utcTime.slice(0, 2)}:${utcTime.slice(2, 4)}:${utcTime.slice(4, 6)}`
+//     //     : null;
+
+//     // const formattedDate = date?.length === 6
+//     //     ? `20${date.slice(4)}-${date.slice(2, 4)}-${date.slice(0, 2)}`
+//     //     : null;
+
+//     // return {
+//     //     latitude: valid ? latitude : null,
+//     //     longitude: valid ? longitude : null,
+//     //     valid,
+//     //     utcTime: formattedTime,
+//     //     date: formattedDate,
+//     //     speed: parseFloat(speed || 0),
+//     //     course: parseFloat(course || 0)
+//     // };
+// }
+
+const parseGPSBody = (bodyLine) => {
+    try {
+        const dataLine = bodyLine.split('*')[0].substring(1); // remove '$' and checksum
+        const parts = dataLine.split(',');
+
+        const [
+            type, time, status, lat, latDir, lon, lonDir,
+            speed, course, date
+        ] = parts;
+
+        const convertToDecimal = (raw, direction) => {
+            if (!raw) return null;
+            const degLen = (direction === 'N' || direction === 'S') ? 2 : 3;
+            const degrees = parseFloat(raw.substring(0, degLen));
+            const minutes = parseFloat(raw.substring(degLen));
+            let decimal = degrees + minutes / 60;
+            if (direction === 'S' || direction === 'W') {
+                decimal *= -1;
+            }
+            return decimal;
+        };
+
+        return {
+            valid: status === 'A',
+            utcTime: time,
+            date: date,
+            latitude: convertToDecimal(lat, latDir),
+            longitude: convertToDecimal(lon, lonDir),
+            speed: speed ? parseFloat(speed) : null,
+            course: course ? parseFloat(course) : null
+        };
+    } catch (err) {
+        console.error("❌ Failed to parse GPS body:", err.message);
+        return {
+            latitude: null,
+            longitude: null,
+            valid: false,
+            utcTime: null,
+            date: null,
+            speed: null,
+            course: null
+        };
     }
-
-    const gprmc = body.slice(gprmcStart).trim();
-    const parts = gprmc.split(',');
-
-    console.log('🧩 Raw $GPRMC sentence:', gprmc);
-    console.log('🧩 Split parts:', parts);
-
-    if (parts.length < 10) {
-        console.log('❌ Not enough parts in $GPRMC:', parts);
-        return defaultGPS();
-    }
-
-    const fixStatus = parts[2];
-    const valid = fixStatus === 'A';
-
-    const rawLat = parts[3];
-    const latDir = parts[4];
-    const rawLon = parts[5];
-    const lonDir = parts[6];
-    const speed = parts[7];
-    const course = parts[8];
-    const date = parts[9];
-    const utcTime = parts[1];
-
-    // 🔍 Log all values
-    console.log('📍 Parsed Fields:');
-    console.log('  ⏱️ utcTime:', utcTime);
-    console.log('  ✅ fixStatus:', fixStatus);
-    console.log('  📌 rawLat:', rawLat);
-    console.log('  🧭 latDir:', latDir);
-    console.log('  📌 rawLon:', rawLon);
-    console.log('  🧭 lonDir:', lonDir);
-    console.log('  🚀 speed:', speed);
-    console.log('  ↪️ course:', course);
-    console.log('  📅 date:', date);
-
-    const latitude = convertToDecimalDegrees(rawLat, latDir);
-    const longitude = convertToDecimalDegrees(rawLon, lonDir);
-
-    const formattedTime = utcTime?.length >= 6
-        ? `${utcTime.slice(0, 2)}:${utcTime.slice(2, 4)}:${utcTime.slice(4, 6)}`
-        : null;
-
-    const formattedDate = date?.length === 6
-        ? `20${date.slice(4)}-${date.slice(2, 4)}-${date.slice(0, 2)}`
-        : null;
-
-    return {
-        latitude: valid ? latitude : null,
-        longitude: valid ? longitude : null,
-        valid,
-        utcTime: formattedTime,
-        date: formattedDate,
-        speed: parseFloat(speed || 0),
-        course: parseFloat(course || 0)
-    };
-}
-
-function defaultGPS() {
-    return {
-        latitude: null,
-        longitude: null,
-        valid: false,
-        utcTime: null,
-        date: null,
-        speed: null,
-        course: null
-    };
-}
+};
 
 export const parsePacket = (packet) => {
     try {
         const parts = packet.split('#').filter(Boolean);
-        if (parts.length < 6) return null;
+        if (parts.length < 6) {
+            console.log("length is less");
+            return null;
+        }
 
-        const [imei, model, password, status, fixValue, bodyLine] = parts;
+        const [imei, model, password, status, fixValue, customCode, bodyLine] = parts;
 
-        // Extract voltage (e.g., 3828 => 3.828 V)
-        const voltageMatch = bodyLine.match(/^(\d{4})/);
-        const batteryVoltage = voltageMatch ? parseFloat(voltageMatch[1]) / 1000 : null;
+        const bodyLine_ = customCode?.includes('$GPRMC') ? customCode :
+            bodyLine.includes('$GPRMC') ? bodyLine : '';
 
-        const gpsData = bodyLine.includes('$GPRMC')
-            ? parseGPSBody(bodyLine)
-            : defaultGPS();
+        const gpsData = parseGPSBody(bodyLine_)
+
+        console.log("Parsed GPS Data:", gpsData);
 
         return {
             imei,
@@ -112,7 +134,6 @@ export const parsePacket = (packet) => {
             fixValue,
             rawData: bodyLine,
             fullPacket: packet,
-            batteryVoltage,
             gps: gpsData
         };
     } catch (err) {
