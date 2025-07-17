@@ -9,11 +9,29 @@ function normalizeStatus(rawStatus = '') {
 
     return 'unknown';
 }
+function convertGpsDateTime(dateStr, timeStr) {
+    // Example: dateStr = '170725', timeStr = '031435.00'
+    const day = dateStr.substring(0, 2);
+    const month = dateStr.substring(2, 4);
+    const year = '20' + dateStr.substring(4, 6); // assumes 20XX
+
+    const hour = timeStr.substring(0, 2);
+    const minute = timeStr.substring(2, 4);
+    const second = timeStr.substring(4, 6);
+
+    // Build a proper ISO string
+    const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
+
+    return new Date(isoString); // Returns a valid Date object
+}
+
 
 export const saveLog = async (data) => {
     try {
+        // console.log("Saving log data:", data);
         const gps = data.gps || {};
-console.log(gps);
+        // console.log("data", gps);
+
         await db('logs').insert({
             imei: data.imei,
             latitude: gps.latitude,
@@ -23,7 +41,7 @@ console.log(gps);
             gps_valid: gps.valid,
             status: normalizeStatus(data.status),
             device_time: gps.date && gps.utcTime
-                ? new Date(`${gps.date}T${gps.utcTime}Z`)
+                ? convertGpsDateTime(gps.date, gps.utcTime)
                 : null
         });
 
