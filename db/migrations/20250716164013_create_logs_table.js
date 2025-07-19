@@ -1,13 +1,16 @@
-// import { TABLE } from "../../utils/enum/table";
+
+import { TABLE } from "../../utils/enum/table.js";
+
 
 /**
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
+// TABLE
 export async function up(Knex) {
-    return Knex.schema.createTable("logs", table => {
+    return Knex.schema.createTable(TABLE.LOGS, table => {
         table.increments('id');
-        table.string('imei').notNullable(); // multiple rows can have same IMEI
+        table.string('imei').notNullable();
         table.decimal('latitude', 10, 6).nullable();
         table.decimal('longitude', 10, 6).nullable();
         table.decimal('speed_knots', 6, 2).nullable();
@@ -26,6 +29,6 @@ export async function up(Knex) {
  * @returns { Promise<void> }
  */
 export async function down(knex) {
-    return knex.schema.dropTableIfExists("logs");
+    return knex.schema.dropTableIfExists(TABLE.LOGS);
 
 };

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import http from 'http';
 import { tcpServer } from './utils/data.js';
 import db from './config/db.js';
+import router from './routes/index.js';
 // import knex from 'knex';
 
 // import knex from '';
@@ -23,6 +24,7 @@ app.get('/api/logs', async (req, res) => {
     const logs = await db('logs').select('*').orderBy('id', 'desc').limit(100);
     res.json(logs);
 });
+app.use("/api/v1", router)
 app.use((req, res) => {
     res
         .status(404)
