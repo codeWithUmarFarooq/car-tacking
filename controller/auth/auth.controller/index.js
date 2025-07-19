@@ -17,24 +17,38 @@ const isValidPhone = (phone) => {
     return phoneRegex.test(phone);
 };
 export const signup = async (req, res) => {
-    try {
-        const { name, email, phone, password, address, role } = req.body;
-        if (!isStrongPassword(password)) {
-            return sendResponse(res, 400, "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.", false);
-        }
-        if (!isValidPhone(phone)) {
-            return sendResponse(res, 400, "Invalid phone number format.", false);
-        }
-        const existingUser = await db("users").where({ email }).first();
-        if (existingUser && existingUser.is_verified) {
-            return sendResponse(res, 400, "Email already registered.", false);
-        }
-        if (existingUser && !existingUser.is_verified) {
-            await db(TABLE.USERS).where({ email }).del();
-        }
+    const trx = await db.transaction();
 
-        const password_hash = await bcrypt.hash(password, 10);
-        const trx = await db.transaction();
+
+    const { name, email, phone, password, address, role } = req.body;
+    if (!isStrongPassword(password)) {
+        return sendResponse(res, 400, "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.", false);
+    }
+    if (!isValidPhone(phone)) {
+        return sendResponse(res, 400, "Invalid phone number format.", false);
+    }
+    const existingEmail = await db("users").where({ email }).first();
+    if (existingEmail && existingEmail.is_verified) {
+        return sendResponse(res, 400, "Email already registered.", false);
+    }
+
+    const existingPhone = await db("users").where({ phone }).first();
+    if (existingPhone && existingPhone.is_verified) {
+        return sendResponse(res, 400, "Phone Number already registered.", false);
+    }
+
+    // Delete unverified phone
+    if (existingPhone && !existingPhone.is_verified) {
+        await db(TABLE.USERS).where({ phone }).del();
+    }
+
+    // Delete unverified email
+    if (existingEmail && !existingEmail.is_verified) {
+        await db(TABLE.USERS).where({ email }).del();
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+    try {
         const [user] = await trx("users").insert({
             name,
             email,
